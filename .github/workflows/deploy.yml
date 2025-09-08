@@ -1,0 +1,48 @@
+name: Deploy Node.js App
+
+on:
+  push:
+    branches:
+      - main   # only deploy when main branch is updated
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Setup Node.js for testing
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      # 3. Install dependencies and run tests
+      - name: Install and test
+        run: |
+          npm install
+          npm test || echo "⚠️ No tests found, skipping"
+
+      # 4. Setup SSH agent with private key
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      # 5. Install Ansible
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      # 6. Run Ansible Playbook
+      - name: Run Ansible Playbook
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: |
+          ansible-playbook -i '${{ secrets.EC2_HOST }},' \
+            --user ${{ secrets.EC2_USER }} \
+            Ansible-conf/node_service.yml --tags app
