@@ -65,19 +65,3 @@
       var: node_process.stdout_lines
     tags: app
 
-# Mark repo as safe for Git
-- name: Mark repo as safe for git
-  shell: git config --global --add safe.directory /var/www/hello-node
-  become: true 
-  tags: app
-
-# Clone your Node.js app repository
-- name: Clone Node.js app repository
-  git:
-    repo: "https://github.com/hanankhan98/hello-node.git"
-    dest: /var/www/hello-node
-    version: main
-    update: yes
-    force: yes
-  become: true
-  tags: app
