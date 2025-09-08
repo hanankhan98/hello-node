@@ -1,44 +1,41 @@
-name: Deploy Node.js App
+name: Deploy Node.js App (SSH)
 
 on:
   push:
     branches:
-      - main
-    
+      - main   # run only when code is pushed to main
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repo
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      # (Optional) Build step if you really need packaging
-      # - name: Build App
-      #   run: |
-      #     chmod +x ./build.sh
-      #     ./build.sh
+      # 2. Setup SSH Agent with EC2 key
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Setup SSH key and inventory
+      # 3. Copy files to server (rsync)
+      - name: Upload code to EC2
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > id_rsa.pem
-          chmod 600 id_rsa.pem
+          rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/hello-node
 
-          cat > inventory.ini <<EOL
-          [app]
-          ${{ secrets.ProductionHost }} ansible_user=${{ secrets.EC2_USER }}
-          EOL
-
-      - name: Install Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
-
-      - name: Run Ansible Playbook
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: "False"
-        run: |
-          ansible-playbook -i inventory.ini Ansible-conf/node_service.yml \
-            --private-key id_rsa.pem \
-            -u ${{ secrets.EC2_USER }} \
-            --tags app
+      # 4. Install dependencies & restart app on EC2
+      - name: Restart Node.js app
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /var/www/hello-node
+            npm install --production
+            pkill -f "node index.js" || true
+            nohup node index.js > app.log 2>&1 &

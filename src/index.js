@@ -3,7 +3,7 @@ const app = express();
 
 // Root endpoint
 app.get("/", (req, res) => {
-  res.send("hello from the NEW deployment version 2 the new chnages hanan khan");
+  res.send("All complete setup");
 });
 
 app.listen(3000, "0.0.0.0", () => {
