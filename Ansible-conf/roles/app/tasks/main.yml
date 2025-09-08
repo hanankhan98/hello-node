@@ -13,12 +13,14 @@
   become: true
   tags: app
 
-# Clone your Node.js app from GitHub
+# Clone your Node.js app from GitHub (always pull latest)
 - name: Clone Node.js app repository
   git:
     repo: "https://github.com/hanankhan98/hello-node.git"
     dest: /var/www/hello-node
     version: main
+    force: yes       # overwrite local changes
+    update: yes      # always pull the latest commit
   become: true
   tags: app
 
@@ -26,6 +28,12 @@
 - name: Install Node.js dependencies
   npm:
     path: /var/www/hello-node
+  become: true
+  tags: app
+
+# Stop old Node.js process (if running)
+- name: Stop old Node.js app
+  shell: "pkill -f 'node src/index.js' || true"
   become: true
   tags: app
 
