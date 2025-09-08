@@ -1,0 +1,66 @@
+---
+- hosts: webserver
+  become: true
+  vars:
+    app_dir: /var/www/hello-node
+    node_port: 3000
+
+  tasks:
+
+  # 1️⃣ Install Node.js and npm
+  - name: Install Node.js
+    apt:
+      name: nodejs
+      state: present
+      update_cache: yes
+    tags: app
+
+  - name: Install npm
+    apt:
+      name: npm
+      state: present
+      update_cache: yes
+    tags: app
+
+  # 2️⃣ Clone the Node.js app from GitHub
+  - name: Clone Node.js app repository
+    git:
+      repo: "https://github.com/hanankhan98/hello-node.git"  # Replace with your repo
+      dest: "{{ app_dir }}"
+      version: main
+    tags: app
+
+  # 3️⃣ Install app dependencies
+  - name: Install Node.js dependencies
+    npm:
+      path: "{{ app_dir }}"
+    tags: app
+
+  # 4️⃣ Open port 3000 on the server (if using AWS Security Group manually, skip)
+  - name: Ensure port 3000 is open (iptables)
+    ufw:
+      rule: allow
+      port: "{{ node_port }}"
+      proto: tcp
+    tags: app
+    ignore_errors: yes  # in case UFW is not used
+
+  # 5️⃣ Start Node.js app
+  - name: Start Node.js app
+    shell: "nohup npm start > app.log 2>&1 &"
+    args:
+      chdir: "{{ app_dir }}"
+    environment:
+      HOST: "0.0.0.0"
+    tags: app
+
+  # 6️⃣ Check that app is running
+  - name: Verify Node.js app process
+    shell: "ps aux | grep 'node ' | grep -v grep"
+    register: node_process
+    tags: app
+
+  - name: Show Node.js process
+    debug:
+      var: node_process.stdout_lines
+    tags: app

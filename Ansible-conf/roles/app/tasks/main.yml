@@ -1,0 +1,40 @@
+# Install Node.js and npm
+- name: Install Node.js
+  apt:
+    name: nodejs
+    state: present
+  become: true
+  tags: app
+
+- name: Install npm
+  apt:
+    name: npm
+    state: present
+  become: true
+  tags: app
+
+# Clone your Node.js app from GitHub
+- name: Clone Node.js app repository
+  git:
+    repo: "https://github.com/hanankhan98/hello-node.git"
+    dest: /var/www/hello-node
+    version: main
+  become: true
+  tags: app
+
+# Install dependencies
+- name: Install Node.js dependencies
+  npm:
+    path: /var/www/hello-node
+  become: true
+  tags: app
+
+# Start the app on 0.0.0.0 to make it accessible externally
+- name: Start Node.js app
+  shell: "nohup npm start > app.log 2>&1 &"
+  args:
+    chdir: /var/www/hello-node
+  environment:
+    HOST: "0.0.0.0"
+  become: true
+  tags: app

@@ -1,0 +1,5 @@
+- name: Add SSH public key to the server
+  authorized_key:
+    user: ubuntu
+    state: present
+    key: "{{ lookup('file', '/home/hanankhan/Documents/Devops/Projects/Intermediate-DevOps-Projects/Configuration-Management/.ssh/MyStaticSite.pub') }}"
